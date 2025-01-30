@@ -4,7 +4,7 @@ import {
     createAccount, 
     getAccounts,
 } from '../controllers/accountController.js';
-import authMiddleware from '../middleware/authMiddleware';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
