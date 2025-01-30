@@ -1,3 +1,5 @@
+import { pool } from "../libs/database.js";
+
 export const getAccounts = async (req, res) => {
     try {
         const { userId } = req.body.user;
@@ -65,7 +67,7 @@ export const createAccount = async (req, res) => {
                 "income",
                 "Completed",
                 amount,
-                account.name
+                account.account_name,
             ],
         };
         await pool.query(initialDepositQuery);
@@ -84,8 +86,41 @@ export const createAccount = async (req, res) => {
 
 export const addMoneyToAccount = async (req, res) => {
     try {
+      const { userId } = req.body.user;
+      const { id } = req.params;
+      const { amount } = req.body;
+  
+      const newAmount = Number(amount);
+  
+      const result = await pool.query({
+        text: `UPDATE tblaccount SET account_balance =(account_balance + $1), updatedat = CURRENT_TIMESTAMP  WHERE id = $2 RETURNING *`,
+        values: [newAmount, id],
+      });
+  
+      const accountInformation = result.rows[0];
+  
+      const description = accountInformation.account_name + " (Deposit)";
+  
+      const transQuery = {
+        text: `INSERT INTO tbltransaction(user_id, description, type, status, amount, source) VALUES($1, $2, $3, $4, $5, $6) RETURNING *`,
+        values: [
+          userId,
+          description,
+          "income",
+          "Completed",
+          amount,
+          accountInformation.account_name,
+        ],
+      };
+      await pool.query(transQuery);
+  
+      res.status(200).json({
+        status: "success",
+        message: "Operation completed successfully",
+        data: accountInformation,
+      });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ status: "failed", message: error.message });
+      console.log(error);
+      res.status(500).json({ status: "failed", message: error.message });
     }
-};
+  };
